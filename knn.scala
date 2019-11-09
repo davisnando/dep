@@ -3,19 +3,36 @@ import scala.math.pow
 object main {
 
   def main(args: Array[String]): Unit = {
-    var input = convToDouble(args);
+    val input = convToDouble(args);
     println(input.mkString("\n"));
+    val columns = Array("Iris-setosa", "Iris-versicolor", "Iris-virginica")
 
-    var d = calcDistance(input, input, 3)
-    var distancesArray = Array(Array(1.0,2.0,34.0), Array(1.0,3.0,34.0), Array(5.0,2.0,34.0))
-
-    var distances = getDistances(distancesArray, input, input.length)
-    // println(distances.map(_.mkString(" ")).mkString("\n"))
-    distances = getNeighbours(distances, 1)
-    println(distances.map(_.mkString(" ")).mkString("\n"))
-
+    var value = majorityVote(getNeighbours(getDistances(convert_data(get_data("iris.data")), input, input.length), 3))
+    println("Outcome: " + columns(value.toInt))
   }
 
+  def convert_data(data : Array[Array[String]]) : Array[Array[Double]] ={
+    if(data.length > 1 ){
+      return convert_data(data.slice(1, data.length)) :+ convToDouble(data(0))
+    }
+    return Array(convToDouble(data(0)))
+  }
+
+  def get_data(filename: String): Array[Array[String]] = {
+    val bufferedSource = io.Source.fromFile(filename)
+    return read_line(bufferedSource.getLines)
+  }
+  def read_line(lines :Iterator[String]) : Array[Array[String]] = {
+    if (lines.hasNext){
+      val line = lines.next()
+      println(line)
+      if(line.length > 1){
+        return read_line(lines) :+ line.split(",")
+      }
+      return Array(line.split(","))
+    }
+    return Array()
+  }
   def convToDouble(args: Array[String]): Array[Double] = {
     if (args.length > 1) {
       return args(0).toDouble +: convToDouble(args.slice(1, args.length))
@@ -24,15 +41,14 @@ object main {
   }
 
   def calcDistance(x: Array[Double], y: Array[Double], length: Int): Double = {
-    var distance = pow(x(0) - y(0), 2);
     if (length > 1) {
-      return distance + calcDistance(
+      return pow(x(0) - y(0), 2) + calcDistance(
         x.slice(1, length),
         y.slice(1, length),
         length - 1
       )
     }
-    return math.sqrt(distance)
+    return math.sqrt(pow(x(0) - y(0), 2))
   }
 
   def getDistances(data: Array[Array[Double]], predict: Array[Double], length: Int): Array[Array[Double]] ={
@@ -44,8 +60,19 @@ object main {
   }
 
   def getNeighbours(distances: Array[Array[Double]], k: Int): Array[Array[Double]] = {
+    // returns inputs, key, distance
     return distances.sortBy(_.length).reverse.slice(0, k)
   }
 
-  
+  def getKeys(neighbours: Array[Array[Double]]) : Array[Double] = {
+    val data = neighbours(0)
+    if(neighbours.length > 1){
+      return getKeys(neighbours.slice(1, neighbours.length)) :+ data(data.length - 2)
+    }
+    return Array(data(data.length - 2))
+  }
+  def majorityVote(neighbours: Array[Array[Double]]) : Double = {
+    val keys = getKeys(neighbours)
+    return keys.groupBy(identity).mapValues(_.size).maxBy(_._2)._1
+  }
 }
